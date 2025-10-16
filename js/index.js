@@ -19,7 +19,11 @@ let currentIndex = 0;
 let autoPlayInterval;
 let preveuosIndex = 0;
 let state = false;
+let lastTouchY = 0;
+let lastScrollTime = 0;
 let ili = avatarSlide.length - 1 === currentIndexAvatar;
+const SCROLL_DELAY = 800;
+const SWIPE_THRESHOLD = 100;
 
 let slideInterval;
 
@@ -46,17 +50,20 @@ function playScroll() {
   slideInterval = setInterval(() => {
     nextSlide();
     avatarChange();
-    console.log(currentIndexAvatar);
     updateDots();
-    if (avatarSlide.length - 1 === currentIndexAvatar) {
-      console.log("done");
+
+    if (currentIndex === 2) {
       clearInterval(slideInterval);
-      setTimeout(() => {
-        currentIndex += 1;
-        updateSlider();
-      }, 5000);
     }
-  }, 3000);
+  }, 5000);
+}
+function ChangeSlide(delta) {
+  const now = Date.now();
+  if (now - lastScrollTime < SCROLL_DELAY) return;
+  lastScrollTime = now;
+
+  currentIndex = (currentIndex + delta + slide.length) % slide.length;
+  updateSlider();
 }
 
 function autoEnded() {
@@ -74,6 +81,28 @@ link.forEach((item) =>
     updateSlider();
   })
 );
+sliderContainer.addEventListener("touchstart", (event) => {
+  lastTouchY = event.touches[0].clientY;
+  console.log(event.touches[0].clientY);
+});
+
+sliderContainer.addEventListener("touchmove", (event) => {
+  let touchY = event.touches[0].clientY;
+  let deltaY = lastTouchY - touchY;
+
+  if (Math.abs(deltaY) > SWIPE_THRESHOLD) {
+    ChangeSlide(deltaY > 0 ? 1 : -1);
+    lastTouchY = touchY;
+  }
+});
+sliderContainer.addEventListener("wheel", (event) => {
+  if (
+    Math.abs(event.deltaY) > Math.abs(event.deltaX) &&
+    Math.abs(event.deltaY) > 50
+  ) {
+    ChangeSlide(event.deltaY > 0 ? 1 : -1);
+  }
+});
 
 card.forEach((el, i) => {
   el.addEventListener("click", () => console.log(i));
@@ -169,3 +198,21 @@ function stopAutoPlay() {
 }
 createDots();
 updateDots();
+function closeAll() {
+  document.querySelector(".container").classList.add("hidden");
+}
+let isMuted = video.muted;
+function mute() {
+  const vol = document.querySelector(".volume");
+  if (isMuted) {
+    video.muted = false;
+    isMuted = true;
+    vol.innerHTML = `<i class="bi bi-volume-up-fill"></i>`;
+    console.log("muted");
+  } else {
+    video.muted = true;
+    isMuted = false;
+    vol.innerHTML = `<i class="bi bi-volume-mute-fill"></i>`;
+    console.log("unmuted");
+  }
+}
